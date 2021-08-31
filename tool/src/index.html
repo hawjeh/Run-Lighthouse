@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link href="./assets/bootstrap.min.css" rel="stylesheet" />
+    <link href="./index.js" rel="stylesheet" />
+    <title>WS Lighthouse Reporting Tool</title>
+  </head>
+
+  <body>
+    <div class="container m-3">
+      <h1 class="mb-3">WS Lighthouse Reporting Tool</h1>
+
+      <h3>Setup:</h3>
+      <div class="input-group mb-3">
+        <div class="input-group-prepend">
+          <label class="input-group-text" for="siteFile">Sites TXT File:</label>
+        </div>
+        <input type="file" class="form-control" id="siteFile" />
+        <input type="text" class="form-control" id="siteFileSelected" disabled />
+      </div>
+
+      <div class="input-group mb-3">
+        <div class="input-group-prepend">
+          <label class="input-group-text" for="destFolder">Destination Folder:</label>
+        </div>
+        <input type="file" class="form-control" id="destFolder" />
+        <input type="text" class="form-control" id="destFolderSelected" disabled />
+      </div>
+
+      <h3>Threshold Reporting:</h3>
+
+      <div class="input-group mb-3">
+        <div class="input-group-prepend">
+          <label class="input-group-text" for="perfScore">Performance Score:</label>
+        </div>
+        <input type="number" class="form-control" id="perfScore" min="1" max="100" value="90" />
+      </div>
+
+      <div class="input-group mb-3">
+        <div class="input-group-prepend">
+          <label class="input-group-text" for="accessScore">Accessibility Score:</label>
+        </div>
+        <input type="number" class="form-control" id="accessScore" min="1" max="100" value="90" />
+      </div>
+
+      <div class="input-group mb-3">
+        <div class="input-group-prepend">
+          <label class="input-group-text" for="bestScore">Best Practices Score:</label>
+        </div>
+        <input type="number" class="form-control" id="bestScore" min="1" max="100" value="90" />
+      </div>
+
+      <div class="input-group mb-3">
+        <div class="input-group-prepend">
+          <label class="input-group-text" for="seoScore">SEO Score:</label>
+        </div>
+        <input type="number" class="form-control" id="seoScore" min="1" max="100" value="90" />
+      </div>
+
+      <h3>Lighthouse Setting:</h3>
+
+      <div class="form-check mb-3">
+        <input type="checkbox" class="form-check-input" id="desktopReport" checked />
+        <label class="form-check-label" for="desktopReport">Generate Desktop Report</label>
+      </div>
+
+      <div class="form-check mb-3">
+        <input type="checkbox" class="form-check-input" id="mobileReport" checked />
+        <label class="form-check-label" for="mobileReport">Generate Mobile Report</label>
+      </div>
+
+      <div class="form-check mb-3">
+        <input type="checkbox" class="form-check-input" id="summaryReport" checked />
+        <label class="form-check-label" for="summaryReport">Generate Summary Report</label>
+      </div>
+
+      <div class="form-check mb-3">
+        <input type="checkbox" class="form-check-input" id="warningSummaryReport" checked />
+        <label class="form-check-label" for="warningSummaryReport">Show Warning in Summary Report</label>
+      </div>
+
+      <div class="mt-3 mb-3">
+        <button class="btn btn-outline-secondary" type="button" id="download">Download Sample Site</button>
+        <button class="btn btn-outline-secondary" type="button" id="generate">Generate Report</button>
+        <button class="btn btn-outline-secondary" type="button" id="generateSummary">Generate Summary Report</button>
+        <button class="btn btn-outline-secondary" type="button" id="openFolder">Open Report Folder</button>
+      </div>
+
+      <div class="mb-3">
+        <div class="d-none" id="report">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+          </div>
+          Generating Report
+        </div>
+      </div>
+    </div>
+
+    <script>
+      if (typeof module === 'object') {
+        window.module = module;
+        module = undefined;
+      }
+    </script>
+    <script src="./assets/jquery-3.6.0.min.js"></script>
+    <script src="./assets/bootstrap.bundle.min.js"></script>
+    <script>
+      if (window.module) module = window.module;
+
+      // Select site file
+      $('#siteFile').on('click', (e) => {
+        e.preventDefault();
+        let selectedFile = selectFile('site');
+        if (selectedFile) {
+          $('#siteFileSelected').val(selectedFile);
+        }
+      });
+
+      // Select output folder
+      $('#destFolder').on('click', (e) => {
+        e.preventDefault();
+        let selectedFolder = selectFolder('dest');
+        if (selectedFolder) {
+          $('#destFolderSelected').val(selectedFolder);
+        }
+      });
+
+      // Execute report generate
+      $('#generate').on('click', (e) => {
+        e.preventDefault();
+        $('#report').removeClass('d-none');
+        $('#generate').prop('disabled', true);
+        $('#download').prop('disabled', true);
+
+        generateReport({
+          useGlobal: false,
+          sites: [],
+          file: $('#siteFileSelected').val(),
+          out: $('#destFolderSelected').val(),
+          desktopReport: $('#desktopReport').prop('checked'),
+          mobileReport: $('#mobileReport').prop('checked'),
+          summaryReport: $('#summaryReport').prop('checked'),
+          warningSummaryReport: $('#warningSummaryReport').prop('checked'),
+          score: $('#perfScore').val() ?? 90,
+          access: $('#accessScore').val() ?? 90,
+          best: $('#bestScore').val() ?? 90,
+          seo: $('#seoScore').val() ?? 90,
+          categories: ['accessibility', 'best-practices', 'performance', 'seo'],
+        });
+      });
+
+      // Execute summary report generate
+      $('#generateSummary').on('click', (e) => {
+        e.preventDefault();
+        generateReportSummary($('#destFolderSelected').val(), {
+          warningSummaryReport: $('#warningSummaryReport').prop('checked')
+        });
+      })
+
+      // Execute download
+      $('#download').on('click', (e) => {
+        e.preventDefault();
+        getSamplePath($('#destFolderSelected').val());
+      });
+
+      // done progress - open folder
+      callback = () => {
+        $('#report').addClass('d-none');
+        $('#generate').removeAttr('disabled');
+        $('#download').removeAttr('disabled');
+      };
+
+      // open destination folder
+      $('#openFolder').on('click', (e) => {
+        openFolder($('#destFolderSelected').val());
+      });
+
+      $(document).ready(function () {
+        var settings = reloadSetting();
+        if (settings.site) {
+          $('#siteFileSelected').val(settings.site);
+        }
+        if (settings.dest) {
+          $('#destFolderSelected').val(settings.dest);
+        }
+        if (settings.desktopReport) {
+          $('#desktopReport').prop('checked', true);
+        } else {
+          $('#desktopReport').prop('checked', false);
+        }
+        if (settings.mobileReport) {
+          $('#mobileReport').prop('checked', true);
+        } else {
+          $('#mobileReport').prop('checked', false);
+        }
+        if (settings.summaryReport) {
+          $('#summaryReport').prop('checked', true);
+        } else {
+          $('#summaryReport').prop('checked', false);
+        }
+        if (settings.warningSummaryReport) {
+          $('#warningSummaryReport').prop('checked', true);
+        } else {
+          $('#warningSummaryReport').prop('checked', false);
+        }
+        if (settings.score) {
+          $('#perfScore').val(settings.score);
+        }
+        if (settings.access) {
+          $('#accessScore').val(settings.access);
+        }
+        if (settings.best) {
+          $('#bestScore').val(settings.best);
+        }
+        if (settings.seo) {
+          $('#seoScore').val(settings.seo);
+        }
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,27 @@
+{
+  "name": "run-lighthouse-cli",
+  "version": "1.0.0",
+  "description": "Custom Lighthouse Cli",
+  "main": "index.js",
+  "bin": {
+    "run-lighthouse": "run.js"
+  },
+  "scripts": {
+    "start": "node run -f sample-site.txt -d -m -s"
+  },
+  "engines": {
+    "node": ">=14.15"
+  },
+  "keywords": [],
+  "author": {
+    "name": "hawjeh",
+    "email": "hawjeh@gmail.com"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "commander": "^8.1.0",
+    "crypto": "^1.0.1",
+    "lighthouse": "^8.3.0",
+    "shelljs": "^0.8.4"
+  }
+}
