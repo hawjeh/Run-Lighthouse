@@ -1,7 +1,7 @@
 {
   "name": "run-lighthouse-tool",
   "productName": "run-lighthouse-tool",
-  "version": "1.0.0",
+  "version": "9.3.1",
   "description": "Lighthouse Reporting Desktop App",
   "main": "src/index.js",
   "scripts": {
@@ -41,7 +41,7 @@
     "crypto": "^1.0.1",
     "electron-squirrel-startup": "^1.0.0",
     "electron-store": "^8.0.0",
-    "lighthouse": "^8.3.0",
+    "lighthouse": "^9.3.1",
     "shelljs": "^0.8.4"
   },
   "devDependencies": {
