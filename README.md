@@ -4,6 +4,10 @@ Run Lighthouse is a tool that inspired by [Google Lighthouse](https://github.com
 
 Lighthouse version v9.6.7
 
+```
+Specially thanks to To Minh Son Sean contribution :)
+```
+
 ## Desktop Reporting Tool
 
 Run debugging mode
