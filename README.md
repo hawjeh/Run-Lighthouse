@@ -2,7 +2,11 @@
 
 Run Lighthouse is a tool that inspired by [Google Lighthouse](https://github.com/GoogleChrome/lighthouse) and [Lighthouse-batch](https://www.npmjs.com/package/lighthouse-batch).
 
-Lighthouse version v9.6.3
+Lighthouse version v9.6.7
+
+```
+Specially thanks to To Minh Son Sean contribution :)
+```
 
 ## Desktop Reporting Tool
 
