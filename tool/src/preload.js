@@ -53,6 +53,7 @@ generateReport = async (option) => {
   store.set('tool.best', option.best);
   store.set('tool.seo', option.seo);
   store.set('tool.summaryReport', option.summaryReport);
+  store.set('tool.auditReport', option.auditReport);
   store.set('tool.warningSummaryReport', option.warningSummaryReport);
 
   let report = { desktopSetting: {}, mobileSetting: {}, desktopResults: [], mobileResults: [] };
@@ -96,10 +97,30 @@ generateReport = async (option) => {
         }
       });
 
+      report.mobileResults.map((res) => {
+        let { score, access, best, seo } = res.detail;
+        if (option.score > score) {
+          res.warning.push(`Performance ${score} < threshold ${option.score}`);
+        }
+        if (option.access > access) {
+          res.warning.push(`Accessibility ${access} < threshold ${option.access}`);
+        }
+        if (option.best > best) {
+          res.warning.push(`Best-Practices ${best} < threshold ${option.best}`);
+        }
+        if (option.seo > seo) {
+          res.warning.push(`SEO ${score} < threshold ${option.seo}`);
+        }
+      });
+
       fs.writeFileSync(path.resolve(`${output}/summary.json`), JSON.stringify(report), 'utf8');
 
       if (option.summaryReport) {
         generateReportSummary(output, option);
+      }
+
+      if (option.auditReport) {
+        generateReportAudit(output, option);
       }
     }
   } catch (e) {
@@ -141,8 +162,8 @@ buildReport = async (option, report) => {
     report.mobileResults.push({
       url: runnerResult.lhr.requestedUrl,
       name: option.site.name,
+      type: 'mobile',
       file: option.site.file,
-      detail: runnerResult.lhr.categories,
       detail: {
         score: runnerResult.lhr.categories['performance'].score * 100,
         access: runnerResult.lhr.categories['accessibility'].score * 100,
@@ -165,6 +186,7 @@ buildReport = async (option, report) => {
     report.desktopResults.push({
       url: runnerResult.lhr.requestedUrl,
       name: option.site.name,
+      type: 'desktop',
       file: option.site.file,
       detail: {
         score: runnerResult.lhr.categories['performance'].score * 100,
@@ -244,15 +266,15 @@ getFolder = (option) => {
   try {
     const outfiles = fs.readdirSync(option.out);
     outfiles.forEach((f) => {
-        const oldFile = path.join(out, f);
-        rm('-f', oldFile);
-      });
+      const oldFile = path.join(out, f);
+      rm('-f', oldFile);
+    });
     const files = fs.readdirSync(out);
     files.forEach((f) => {
       const oldFile = path.join(out, f);
       rm('-f', oldFile);
     });
-  } catch (e) {}
+  } catch (e) { }
   mkdir('-p', out);
   return out;
 };
@@ -309,14 +331,12 @@ generateReportSummary = (dest, option) => {
   }
 
   if (content.desktopResults.length > 0) {
-    body += `<div class="my-3">${borderTableHead}<tr><td>Url</td><td>Filename</td><td>Performance</td><td>Accessibility</td><td>Best-Pratices</td><td>SEO</td>${
-      option.warningSummaryReport ? '<td>Warning</td>' : ''
-    }</tr>`;
+    body += `<div class="my-3">${borderTableHead}<tr><td>Url</td><td>Filename</td><td>Performance</td><td>Accessibility</td><td>Best-Pratices</td><td>SEO</td>${option.warningSummaryReport ? '<td>Warning</td>' : ''
+      }</tr>`;
     content.desktopResults.forEach((row) => {
       body += '<tr>';
-      body += `<td><a href='${row.url}' target='_blank'>${row.url}</a></td><td><a href='${path.join(desktopOut, row.file)}' target='_blank'>${
-        row.file
-      }</a></td><td>${row.detail.score}</td><td>${row.detail.access}</td><td>${row.detail.best}</td><td>${row.detail.seo}</td>`;
+      body += `<td><a href='${row.url}' target='_blank'>${row.url}</a></td><td><a href='${path.join(desktopOut, row.file)}' target='_blank'>${row.file
+        }</a></td><td>${row.detail.score}</td><td>${row.detail.access}</td><td>${row.detail.best}</td><td>${row.detail.seo}</td>`;
       if (option.warningSummaryReport && row.warning.length > 0) {
         body += `<td>${row.warning.join().replace(',', '<br/>')}</td>`;
       }
@@ -353,14 +373,12 @@ generateReportSummary = (dest, option) => {
   }
 
   if (content.mobileResults.length > 0) {
-    body += `<div class="my-3">${borderTableHead}<tr><td>Url</td><td>Filename</td><td>Performance</td><td>Accessibility</td><td>Best-Pratices</td><td>SEO</td>${
-      option.warningSummaryReport ? '<td>Warning</td>' : ''
-    }</tr>`;
-    content.desktopResults.forEach((row) => {
+    body += `<div class="my-3">${borderTableHead}<tr><td>Url</td><td>Filename</td><td>Performance</td><td>Accessibility</td><td>Best-Pratices</td><td>SEO</td>${option.warningSummaryReport ? '<td>Warning</td>' : ''
+      }</tr>`;
+    content.mobileResults.forEach((row) => {
       body += '<tr>';
-      body += `<td><a href='${row.url}' target='_blank'>${row.url}</a></td><td><a href='${path.join(mobileOut, row.file)}' target='_blank'>${
-        row.file
-      }</a></td><td>${row.detail.score}</td><td>${row.detail.access}</td><td>${row.detail.best}</td><td>${row.detail.seo}</td>`;
+      body += `<td><a href='${row.url}' target='_blank'>${row.url}</a></td><td><a href='${path.join(mobileOut, row.file)}' target='_blank'>${row.file
+        }</a></td><td>${row.detail.score}</td><td>${row.detail.access}</td><td>${row.detail.best}</td><td>${row.detail.seo}</td>`;
       if (option.warningSummaryReport && row.warning.length > 0) {
         body += `<td>${row.warning.join().replace(',', '<br/>')}</td>`;
       }
@@ -373,6 +391,58 @@ generateReportSummary = (dest, option) => {
 
   let reportHtml = head + body + tail;
   fs.writeFileSync(path.join(dest, 'summary.html'), reportHtml);
+
+  return true;
+};
+
+groupBy = function (xs, key) {
+  return xs.reduce(function (rv, x) {
+    (rv[x[key]] = rv[x[key]] || []).push(x);
+    return rv;
+  }, {});
+};
+
+generateReportAudit = (dest) => {
+  const summaryFile = path.join(dest, 'summary.json');
+  let content = '';
+
+  try {
+    const fileContent = fs.readFileSync(summaryFile, 'utf8');
+    content = JSON.parse(fileContent);
+  } catch (e) {
+    alert('Report summary.json not found');
+  }
+
+  if (!content) {
+    return false;
+  }
+
+  let head =
+    '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/css/bootstrap.min.css" rel="stylesheet"><title>WS Lighthouse Reporting Tool App - Audit Report</title></head><body><div class="container m-3">';
+
+  let borderTableHead = '<div class="table-responsive"><table class="table table-bordered table-striped">';
+  let borderTableTail = '</table></div>';
+  let body = '';
+  let combined = content.desktopResults.concat(content.mobileResults);
+
+  if (combined.length > 0) {
+    var groupedCombined = groupBy(combined, 'url');
+    body += `<div class="my-3">${borderTableHead}<tr><td>Website Url</td><td>Mobile Performance</td><td>Mobile Accessibility</td><td>Mobile Best-Pratices</td><td>Mobile SEO</td><td>Performance</td><td>Accessibility</td><td>Best-Pratices</td><td>SEO</td><td>PWA</td><td>Date Run</td></tr>`;
+    for (var gCombined in groupedCombined) {
+      var url = gCombined;
+      var desktop = groupedCombined[gCombined].filter(x => x.type === 'desktop')[0];
+      var mobile = groupedCombined[gCombined].filter(x => x.type === 'mobile')[0];
+      body += '<tr>';
+      body += `<td><a href='${url}' target='_blank'>${url}</a></td><td>${mobile.detail.score}</td><td>${mobile.detail.access}</td><td>${mobile.detail.best}</td><td>${mobile.detail.seo}</td><td>${desktop.detail.score}</td><td>${desktop.detail.access}</td><td>${desktop.detail.best}</td><td>${desktop.detail.seo}</td><td>N/A</td><td></td>`;
+      body += '</tr>';
+    }
+    body += `${borderTableTail}</div>`;
+  }
+
+  let tail = '</div><script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/js/bootstrap.bundle.min.js"></script></body></html>';
+
+  let reportHtml = head + body + tail;
+  fs.writeFileSync(path.join(dest, 'audit.html'), reportHtml);
 
   return true;
 };

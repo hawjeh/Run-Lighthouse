@@ -13,6 +13,7 @@ program
     .option('-m, --mobile', 'enable generate mobile report')
     .option('-t, --threshold', 'enable generate summary report with threshold warning')
     .option('-s, --summary', 'enable generate summary report')
+    .option('-a, --audit', 'enable generate audit report')
     .option('-o, --out [path]', `the output folder to place reports, default to ${execute.OUT}`)
     .option('--accessibility <threshold>', `accessibility score for each site to meet (1-100)`, Number)
     .option('--performance <threshold>', `performance score for each site to meet (1-100)`, Number)

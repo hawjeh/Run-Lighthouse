@@ -7,7 +7,7 @@
     "run-lighthouse": "run.js"
   },
   "scripts": {
-    "start": "node run -f sample-site.txt -d -m -s"
+    "start": "node run -f sample-site.txt -d -m -s -a"
   },
   "engines": {
     "node": ">=14.15"
@@ -19,9 +19,9 @@
   },
   "license": "MIT",
   "dependencies": {
-    "commander": "^8.1.0",
+    "commander": "^9.4.1",
     "crypto": "^1.0.1",
     "lighthouse": "^9.6.7",
-    "shelljs": "^0.8.4"
+    "shelljs": "^0.8.5"
   }
 }
