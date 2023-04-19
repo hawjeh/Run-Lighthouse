@@ -5,7 +5,6 @@ const store = new Store();
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
-const lighthouse = require('lighthouse');
 const lighthouesConstant = require('./constant');
 const chromeLauncher = require('chrome-launcher');
 
@@ -45,7 +44,7 @@ getSamplePath = (dest) => {
   fs.writeFileSync(path.resolve(`${dest}/sample-site.txt`), content);
 };
 
-generateReport = async (option) => {
+generateFullReport = async (option) => {
   store.set('tool.desktopReport', option.desktopReport);
   store.set('tool.mobileReport', option.mobileReport);
   store.set('tool.score', option.score);
@@ -146,7 +145,7 @@ buildReport = async (option, report) => {
     options.emulatedUserAgent = lighthouesConstant.userAgents.desktop;
   }
 
-  const runnerResult = await lighthouse(option.site.url, options);
+  const runnerResult = ipcRenderer.sendSync('build-report', { url: option.site.url, options: options });
 
   if (option.isMobile) {
     if (report.mobileSetting && Object.keys(report.mobileSetting).length === 0) {

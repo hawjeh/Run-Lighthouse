@@ -4,6 +4,7 @@ const { app, BrowserWindow, dialog, ipcMain } = require('electron');
 const path = require('path');
 const Store = require('electron-store');
 Store.initRenderer();
+const lighthouse = (...args) => import('lighthouse').then(({ default: lighthouse }) => lighthouse(...args));
 
 if (require('electron-squirrel-startup')) {
   app.quit();
@@ -39,6 +40,16 @@ const createWindow = () => {
     });
     event.returnValue = result;
   });
+
+  ipcMain.on('build-report', async (event, arg) => {
+    let result;
+    try {
+      result = await lighthouse(arg.url, arg.options);
+    } catch (e) {
+      alert(e);
+    }
+    event.returnValue = result;
+  })
 };
 
 app.on('ready', createWindow);

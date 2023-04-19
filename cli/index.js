@@ -54,7 +54,7 @@ async function execute({ _optionValues }) {
   }
 
   // command
-  const lhScript = `node ${path.resolve(`${__dirname}/node_modules/lighthouse/lighthouse-cli/index.js`)}`;
+  const lhScript = `node ${path.resolve(`${__dirname}/node_modules/lighthouse/cli/index.js`)}`;
   const desktopFlag =
     '--chrome-flags="--no-sandbox --headless --disable-gpu" --preset=desktop --only-categories=accessibility, best-practices, performance, seo';
   const mobileFlag = '--chrome-flags="--no-sandbox --headless --disable-gpu" --only-categories=accessibility, best-practices, performance, seo';

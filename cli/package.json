@@ -1,6 +1,6 @@
 {
   "name": "run-lighthouse-cli",
-  "version": "9.6.7",
+  "version": "10.1.1",
   "description": "Custom Lighthouse Cli",
   "main": "index.js",
   "bin": {
@@ -19,9 +19,9 @@
   },
   "license": "MIT",
   "dependencies": {
-    "commander": "^9.4.1",
+    "commander": "^10.0.1",
     "crypto": "^1.0.1",
-    "lighthouse": "9.6.8",
+    "lighthouse": "10.1.1",
     "shelljs": "^0.8.5"
   }
 }
