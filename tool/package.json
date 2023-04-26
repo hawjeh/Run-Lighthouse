@@ -3,13 +3,14 @@
   "productName": "run-lighthouse-tool",
   "version": "10.1.1",
   "description": "Lighthouse Reporting Desktop App",
-  "main": "src/index.js",
+  "main": "index.js",
   "scripts": {
     "start": "cross-env APP_ENVIRONMENT=debug electron-forge start",
     "build": "cross-env APP_ENVIRONMENT=release electron-builder"
   },
   "build": {
-    "appId": "cool-app",
+    "appId": "run.lighthouse.app",
+    "asar": false,
     "win": {
       "target": [
         "nsis"
@@ -23,13 +24,7 @@
       "uninstallDisplayName": "Lighthouse Reporting Desktop App",
       "oneClick": false,
       "allowToChangeInstallationDirectory": true
-    },
-    "extraFiles": [
-      {
-        "from": "src/sample-site.txt",
-        "to": "resources/."
-      }
-    ]
+    }
   },
   "keywords": [],
   "author": {
@@ -38,11 +33,9 @@
   },
   "license": "MIT",
   "dependencies": {
-    "crypto": "^1.0.1",
     "electron-squirrel-startup": "^1.0.0",
     "electron-store": "^8.1.0",
-    "lighthouse": "10.1.1",
-    "shelljs": "^0.8.5"
+    "lighthouse": "10.1.1"
   },
   "devDependencies": {
     "@electron-forge/cli": "^6.1.1",

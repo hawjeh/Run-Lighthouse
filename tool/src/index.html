@@ -5,7 +5,6 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link href="./assets/bootstrap.min.css" rel="stylesheet" />
-  <link href="./index.js" rel="stylesheet" />
   <title>WS Lighthouse Reporting Tool</title>
 </head>
 
@@ -105,37 +104,30 @@
     </div>
   </div>
 
-  <script>
-    if (typeof module === 'object') {
-      window.module = module;
-      module = undefined;
-    }
-  </script>
   <script src="./assets/jquery-3.6.0.min.js"></script>
   <script src="./assets/bootstrap.bundle.min.js"></script>
+  <script src="./renderer.js"></script>
   <script>
-    if (window.module) module = window.module;
-
     // Select site file
-    $('#siteFile').on('click', (e) => {
+    $('#siteFile').on('click', async (e) => {
       e.preventDefault();
-      let selectedFile = selectFile('site');
+      let selectedFile = await selectFile('site');
       if (selectedFile) {
         $('#siteFileSelected').val(selectedFile);
       }
     });
 
     // Select output folder
-    $('#destFolder').on('click', (e) => {
+    $('#destFolder').on('click', async (e) => {
       e.preventDefault();
-      let selectedFolder = selectFolder('dest');
+      let selectedFolder = await selectFolder('dest');
       if (selectedFolder) {
         $('#destFolderSelected').val(selectedFolder);
       }
     });
 
     // Execute report generate
-    $('#generate').on('click', (e) => {
+    $('#generate').on('click', async (e) => {
       e.preventDefault();
       $('#report').removeClass('d-none');
       $('#generate').prop('disabled', true);
@@ -143,7 +135,7 @@
       $('#generateSummary').prop('disabled', true);
       $('#generateAudit').prop('disabled', true);
 
-      generateFullReport({
+      await generateFullReport({
         useGlobal: false,
         sites: [],
         file: $('#siteFileSelected').val(),
@@ -191,12 +183,12 @@
     };
 
     // open destination folder
-    $('#openFolder').on('click', (e) => {
-      openFolder($('#destFolderSelected').val());
+    $('#openFolder').on('click', async (e) => {
+      await openFolder($('#destFolderSelected').val());
     });
 
-    $(document).ready(function () {
-      var settings = reloadSetting();
+    $(document).ready(async function () {
+      var settings = await reloadSetting();
       if (settings.site) {
         $('#siteFileSelected').val(settings.site);
       }

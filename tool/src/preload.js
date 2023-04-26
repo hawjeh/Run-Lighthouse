@@ -1,209 +1,153 @@
-require('shelljs/global');
-const { ipcRenderer, shell } = require('electron');
+const { contextBridge, ipcRenderer, shell } = require('electron')
 const Store = require('electron-store');
 const store = new Store();
 const path = require('path');
 const fs = require('fs');
-const crypto = require('crypto');
 const lighthouesConstant = require('./constant');
 const chromeLauncher = require('chrome-launcher');
 
-reloadSetting = () => {
-  return store.get('tool');
-};
+contextBridge.exposeInMainWorld('api', {
+  openDirectory: (type) => {
+    let resp = ipcRenderer.sendSync('openDirectory');
+    if (resp && resp.filePaths && resp.filePaths.length > 0) {
+      let path = resp.filePaths[0];
+      store.set('tool.' + type, path);
+      return path;
+    }
+    return '';
+  },
+  openFile: (type) => {
+    let resp = ipcRenderer.sendSync('openFile');
+    if (resp && resp.filePaths && resp.filePaths.length > 0) {
+      let path = resp.filePaths[0];
+      store.set('tool.' + type, path);
+      return path;
+    }
+    return '';
+  },
+  openFolder: (dest) => {
+    setTimeout(() => {
+      shell.openPath(path.join(dest, '/'));
+    }, 1000);
+  },
+  reloadSetting: () => {
+    return store.get('tool');
+  },
+  generateFullReport: async (option) => {
+    store.set('tool.desktopReport', option.desktopReport);
+    store.set('tool.mobileReport', option.mobileReport);
+    store.set('tool.score', option.score);
+    store.set('tool.access', option.access);
+    store.set('tool.best', option.best);
+    store.set('tool.seo', option.seo);
+    store.set('tool.summaryReport', option.summaryReport);
+    store.set('tool.auditReport', option.auditReport);
+    store.set('tool.warningSummaryReport', option.warningSummaryReport);
 
-selectFolder = (type) => {
-  let resp = ipcRenderer.sendSync('open-directory');
-  if (resp && resp.filePaths && resp.filePaths.length > 0) {
-    let path = resp.filePaths[0];
-    store.set('tool.' + type, path);
-    return path;
+    let report = { desktopSetting: {}, mobileSetting: {}, desktopResults: [], mobileResults: [] };
+    const output = option.out;
+
+    try {
+      // Mobile
+      if (option.mobileReport) {
+        option.isMobile = true;
+        option.outFolder = getFolder(option);
+        for (let item of getUrls(option)) {
+          option.site = item;
+          await buildReport(option, report);
+        }
+      }
+
+      // Desktop
+      if (option.desktopReport) {
+        option.isMobile = false;
+        option.outFolder = getFolder(option);
+        for (let item of getUrls(option)) {
+          option.site = item;
+          await buildReport(option, report);
+        }
+      }
+
+      if (option.mobileReport || option.desktopReport) {
+        report.desktopResults.map((res) => {
+          let { score, access, best, seo } = res.detail;
+          if (option.score > score) {
+            res.warning.push(`Performance ${score} < threshold ${option.score}`);
+          }
+          if (option.access > access) {
+            res.warning.push(`Accessibility ${access} < threshold ${option.access}`);
+          }
+          if (option.best > best) {
+            res.warning.push(`Best-Practices ${best} < threshold ${option.best}`);
+          }
+          if (option.seo > seo) {
+            res.warning.push(`SEO ${score} < threshold ${option.seo}`);
+          }
+        });
+
+        report.mobileResults.map((res) => {
+          let { score, access, best, seo } = res.detail;
+          if (option.score > score) {
+            res.warning.push(`Performance ${score} < threshold ${option.score}`);
+          }
+          if (option.access > access) {
+            res.warning.push(`Accessibility ${access} < threshold ${option.access}`);
+          }
+          if (option.best > best) {
+            res.warning.push(`Best-Practices ${best} < threshold ${option.best}`);
+          }
+          if (option.seo > seo) {
+            res.warning.push(`SEO ${score} < threshold ${option.seo}`);
+          }
+        });
+
+        fs.writeFileSync(path.resolve(`${output}/summary.json`), JSON.stringify(report), 'utf8');
+
+        if (option.summaryReport) {
+          generateReportSummary(output, option);
+        }
+
+        if (option.auditReport) {
+          generateReportAudit(output, option);
+        }
+      }
+    } catch (e) {
+      alert('Build report error');
+    }
+  },
+  getSamplePath: (dest) => {
+    mkdirp('-p', dest);
+    var content = 'https://www.websparks.sg/\t\nhttps://www.websparks.sg/about-us/';
+    fs.writeFileSync(path.resolve(`${dest}/sample-site.txt`), content);
+  },
+  generateReportSummary: (dest, option) => {
+    generateReportSummary(dest, option);
+  },
+  generateReportAudit: (option) => {
+    generateReportAudit(option);
   }
-  return '';
-};
+})
 
-selectFile = (type) => {
-  let resp = ipcRenderer.sendSync('open-file');
-  if (resp && resp.filePaths && resp.filePaths.length > 0) {
-    let path = resp.filePaths[0];
-    store.set('tool.' + type, path);
-    return path;
-  }
-  return '';
-};
-
-openFolder = (dest) => {
-  setTimeout(() => {
-    shell.openPath(path.join(dest, '/'));
-  }, 1000);
-};
-
-getSamplePath = (dest) => {
-  mkdir('-p', dest);
-  var content = 'https://www.websparks.sg/\t\nhttps://www.websparks.sg/about-us/';
-  fs.writeFileSync(path.resolve(`${dest}/sample-site.txt`), content);
-};
-
-generateFullReport = async (option) => {
-  store.set('tool.desktopReport', option.desktopReport);
-  store.set('tool.mobileReport', option.mobileReport);
-  store.set('tool.score', option.score);
-  store.set('tool.access', option.access);
-  store.set('tool.best', option.best);
-  store.set('tool.seo', option.seo);
-  store.set('tool.summaryReport', option.summaryReport);
-  store.set('tool.auditReport', option.auditReport);
-  store.set('tool.warningSummaryReport', option.warningSummaryReport);
-
-  let report = { desktopSetting: {}, mobileSetting: {}, desktopResults: [], mobileResults: [] };
-  const output = option.out;
-
+const getFolder = (option) => {
+  // remove and create new folder
+  const out = path.join(option.out, option.isMobile ? 'mobile' : 'desktop');
   try {
-    // Mobile
-    if (option.mobileReport) {
-      option.isMobile = true;
-      option.outFolder = getFolder(option);
-      for (let item of getUrls(option)) {
-        option.site = item;
-        await buildReport(option, report);
-      }
-    }
-
-    // Desktop
-    if (option.desktopReport) {
-      option.isMobile = false;
-      option.outFolder = getFolder(option);
-      for (let item of getUrls(option)) {
-        option.site = item;
-        await buildReport(option, report);
-      }
-    }
-
-    if (option.mobileReport || option.desktopReport) {
-      report.desktopResults.map((res) => {
-        let { score, access, best, seo } = res.detail;
-        if (option.score > score) {
-          res.warning.push(`Performance ${score} < threshold ${option.score}`);
-        }
-        if (option.access > access) {
-          res.warning.push(`Accessibility ${access} < threshold ${option.access}`);
-        }
-        if (option.best > best) {
-          res.warning.push(`Best-Practices ${best} < threshold ${option.best}`);
-        }
-        if (option.seo > seo) {
-          res.warning.push(`SEO ${score} < threshold ${option.seo}`);
-        }
-      });
-
-      report.mobileResults.map((res) => {
-        let { score, access, best, seo } = res.detail;
-        if (option.score > score) {
-          res.warning.push(`Performance ${score} < threshold ${option.score}`);
-        }
-        if (option.access > access) {
-          res.warning.push(`Accessibility ${access} < threshold ${option.access}`);
-        }
-        if (option.best > best) {
-          res.warning.push(`Best-Practices ${best} < threshold ${option.best}`);
-        }
-        if (option.seo > seo) {
-          res.warning.push(`SEO ${score} < threshold ${option.seo}`);
-        }
-      });
-
-      fs.writeFileSync(path.resolve(`${output}/summary.json`), JSON.stringify(report), 'utf8');
-
-      if (option.summaryReport) {
-        generateReportSummary(output, option);
-      }
-
-      if (option.auditReport) {
-        generateReportAudit(output, option);
-      }
-    }
-  } catch (e) {
-    alert('Build report error');
-  }
-
-  callback();
+    const outfiles = fs.readdirSync(out);
+    outfiles.forEach((f) => {
+      const oldFile = path.join(out, f);
+      rm('-f', oldFile);
+    });
+    const files = fs.readdirSync(out);
+    files.forEach((f) => {
+      const oldFile = path.join(out, f);
+      rm('-f', oldFile);
+    });
+  } catch (e) { }
+  mkdirp(out);
+  return out;
 };
 
-buildReport = async (option, report) => {
-  const chrome = await chromeLauncher.launch({ chromeFlags: ['--no-sandbox', '--headless', '--disable-gpu'] });
-  let options = {
-    logLevel: 'info',
-    output: 'html',
-    onlyCategories: option.categories,
-    port: chrome.port,
-  };
-
-  if (!option.isMobile) {
-    options.formFactor = 'desktop';
-    options.throttling = lighthouesConstant.throttling.desktopDense4G;
-    options.screenEmulation = lighthouesConstant.screenEmulationMetrics.desktop;
-    options.emulatedUserAgent = lighthouesConstant.userAgents.desktop;
-  }
-
-  const runnerResult = ipcRenderer.sendSync('build-report', { url: option.site.url, options: options });
-
-  if (option.isMobile) {
-    if (report.mobileSetting && Object.keys(report.mobileSetting).length === 0) {
-      report.mobileSetting = {
-        environment: runnerResult.lhr.environment,
-        enumaltedUserAgent: runnerResult.lhr.configSettings.emulatedUserAgent,
-        throttling: runnerResult.lhr.configSettings.throttling,
-        screenEmulation: runnerResult.lhr.configSettings.screenEmulation,
-        version: runnerResult.lhr.lighthouseVersion,
-      };
-    }
-
-    report.mobileResults.push({
-      url: runnerResult.lhr.requestedUrl,
-      name: option.site.name,
-      type: 'mobile',
-      file: option.site.file,
-      detail: {
-        score: runnerResult.lhr.categories['performance'].score * 100,
-        access: runnerResult.lhr.categories['accessibility'].score * 100,
-        best: runnerResult.lhr.categories['best-practices'].score * 100,
-        seo: runnerResult.lhr.categories['seo'].score * 100,
-      },
-      warning: [],
-    });
-  } else {
-    if (report.desktopSetting && Object.keys(report.desktopSetting).length === 0) {
-      report.desktopSetting = {
-        environment: runnerResult.lhr.environment,
-        enumaltedUserAgent: runnerResult.lhr.configSettings.emulatedUserAgent,
-        throttling: runnerResult.lhr.configSettings.throttling,
-        screenEmulation: runnerResult.lhr.configSettings.screenEmulation,
-        version: runnerResult.lhr.lighthouseVersion,
-      };
-    }
-
-    report.desktopResults.push({
-      url: runnerResult.lhr.requestedUrl,
-      name: option.site.name,
-      type: 'desktop',
-      file: option.site.file,
-      detail: {
-        score: runnerResult.lhr.categories['performance'].score * 100,
-        access: runnerResult.lhr.categories['accessibility'].score * 100,
-        best: runnerResult.lhr.categories['best-practices'].score * 100,
-        seo: runnerResult.lhr.categories['seo'].score * 100,
-      },
-      warning: [],
-    });
-  }
-
-  const reportHtml = runnerResult.report;
-  fs.writeFileSync(`${path.join(option.outFolder, option.site.file)}`, reportHtml);
-
-  await chrome.kill();
-};
-
-getUrls = (option) => {
+const getUrls = (option) => {
   let sites = [];
   if (option.file) {
     try {
@@ -246,39 +190,7 @@ getUrls = (option) => {
   });
 };
 
-siteName = (site) => {
-  const maxLength = 100;
-  let name = site.replace(/^https?:\/\//, '').replace(/[\/\?#:\*\$@\!\.]/g, '_');
-
-  if (name.length > maxLength) {
-    const hash = crypto.createHash('sha1').update(name).digest('hex').slice(0, 7);
-
-    name = name.slice(0, maxLength).replace(/_+$/g, ''); // trim any `_` suffix
-    name = `${name}_${hash}`;
-  }
-  return name;
-};
-
-getFolder = (option) => {
-  // remove and create new folder
-  const out = path.join(option.out, option.isMobile ? 'mobile' : 'desktop');
-  try {
-    const outfiles = fs.readdirSync(option.out);
-    outfiles.forEach((f) => {
-      const oldFile = path.join(out, f);
-      rm('-f', oldFile);
-    });
-    const files = fs.readdirSync(out);
-    files.forEach((f) => {
-      const oldFile = path.join(out, f);
-      rm('-f', oldFile);
-    });
-  } catch (e) { }
-  mkdir('-p', out);
-  return out;
-};
-
-generateReportSummary = (dest, option) => {
+const generateReportSummary = (dest, option) => {
   const summaryFile = path.join(dest, 'summary.json');
   let content = '';
 
@@ -394,14 +306,14 @@ generateReportSummary = (dest, option) => {
   return true;
 };
 
-groupBy = function (xs, key) {
+const groupBy = function (xs, key) {
   return xs.reduce(function (rv, x) {
     (rv[x[key]] = rv[x[key]] || []).push(x);
     return rv;
   }, {});
 };
 
-generateReportAudit = (dest) => {
+const generateReportAudit = (dest) => {
   const summaryFile = path.join(dest, 'summary.json');
   let content = '';
 
@@ -445,3 +357,112 @@ generateReportAudit = (dest) => {
 
   return true;
 };
+
+const siteName = (site) => {
+  const maxLength = 100;
+  let name = site.replace(/^https?:\/\//, '').replace(/[\/\?#:\*\$@\!\.]/g, '_');
+
+  if (name.length > maxLength) {
+    const hash = cyrb53(name).slice(0, 7);
+
+    name = name.slice(0, maxLength).replace(/_+$/g, ''); // trim any `_` suffix
+    name = `${name}_${hash}`;
+  }
+  return name;
+};
+
+const cyrb53 = (str, seed = 0) => {
+  let h1 = 0xdeadbeef ^ seed, h2 = 0x41c6ce57 ^ seed;
+  for(let i = 0, ch; i < str.length; i++) {
+      ch = str.charCodeAt(i);
+      h1 = Math.imul(h1 ^ ch, 2654435761);
+      h2 = Math.imul(h2 ^ ch, 1597334677);
+  }
+  h1  = Math.imul(h1 ^ (h1 >>> 16), 2246822507);
+  h1 ^= Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2  = Math.imul(h2 ^ (h2 >>> 16), 2246822507);
+  h2 ^= Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+
+  return 4294967296 * (2097151 & h2) + (h1 >>> 0);
+};
+
+const buildReport = async (option, report) => {
+  const chrome = await chromeLauncher.launch({ chromeFlags: ['--no-sandbox', '--headless', '--disable-gpu'] });
+  let options = {
+    logLevel: 'info',
+    output: 'html',
+    onlyCategories: option.categories,
+    port: chrome.port,
+  };
+
+  if (!option.isMobile) {
+    options.formFactor = 'desktop';
+    options.throttling = lighthouesConstant.throttling.desktopDense4G;
+    options.screenEmulation = lighthouesConstant.screenEmulationMetrics.desktop;
+    options.emulatedUserAgent = lighthouesConstant.userAgents.desktop;
+  }
+
+  const runnerResult = await ipcRenderer.invoke('buildReport', { url: option.site.url, options: options });
+
+  if (option.isMobile) {
+    if (report.mobileSetting && Object.keys(report.mobileSetting).length === 0) {
+      report.mobileSetting = {
+        environment: runnerResult.lhr.environment,
+        enumaltedUserAgent: runnerResult.lhr.configSettings.emulatedUserAgent,
+        throttling: runnerResult.lhr.configSettings.throttling,
+        screenEmulation: runnerResult.lhr.configSettings.screenEmulation,
+        version: runnerResult.lhr.lighthouseVersion,
+      };
+    }
+
+    report.mobileResults.push({
+      url: runnerResult.lhr.requestedUrl,
+      name: option.site.name,
+      type: 'mobile',
+      file: option.site.file,
+      detail: {
+        score: runnerResult.lhr.categories['performance'].score * 100,
+        access: runnerResult.lhr.categories['accessibility'].score * 100,
+        best: runnerResult.lhr.categories['best-practices'].score * 100,
+        seo: runnerResult.lhr.categories['seo'].score * 100,
+      },
+      warning: [],
+    });
+  } else {
+    if (report.desktopSetting && Object.keys(report.desktopSetting).length === 0) {
+      report.desktopSetting = {
+        environment: runnerResult.lhr.environment,
+        enumaltedUserAgent: runnerResult.lhr.configSettings.emulatedUserAgent,
+        throttling: runnerResult.lhr.configSettings.throttling,
+        screenEmulation: runnerResult.lhr.configSettings.screenEmulation,
+        version: runnerResult.lhr.lighthouseVersion,
+      };
+    }
+
+    report.desktopResults.push({
+      url: runnerResult.lhr.requestedUrl,
+      name: option.site.name,
+      type: 'desktop',
+      file: option.site.file,
+      detail: {
+        score: runnerResult.lhr.categories['performance'].score * 100,
+        access: runnerResult.lhr.categories['accessibility'].score * 100,
+        best: runnerResult.lhr.categories['best-practices'].score * 100,
+        seo: runnerResult.lhr.categories['seo'].score * 100,
+      },
+      warning: [],
+    });
+  }
+
+  const reportHtml = runnerResult.report;
+  fs.writeFileSync(`${path.join(option.outFolder, option.site.file)}`, reportHtml);
+
+  await chrome.kill();
+};
+
+const mkdirp = (dir) => {
+  if (fs.existsSync(dir)) { return true }
+  const dirname = path.dirname(dir)
+  mkdirp(dirname);
+  fs.mkdirSync(dir);
+}

@@ -4,7 +4,7 @@ const { app, BrowserWindow, dialog, ipcMain } = require('electron');
 const path = require('path');
 const Store = require('electron-store');
 Store.initRenderer();
-const lighthouse = (...args) => import('lighthouse').then(({ default: lighthouse }) => lighthouse(...args));
+const lighthouse = (...args) => import('./node_modules/lighthouse/core/index.js').then(({ default: lighthouse }) => lighthouse(...args));
 
 if (require('electron-squirrel-startup')) {
   app.quit();
@@ -16,50 +16,49 @@ const createWindow = () => {
     width: 1080,
     height: 980,
     webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
+      preload: path.join(__dirname, 'src/preload.js'),
       nodeIntegration: true,
-      contextIsolation: false,
+      contextIsolation: true,
       devTools: process.env['APP_ENVIRONMENT'] === 'debug'
     }
   });
 
   mainWindow.setMenuBarVisibility(process.env['APP_ENVIRONMENT'] === 'debug' ? true : false);
-  mainWindow.loadFile(path.join(__dirname, 'index.html'));
+  mainWindow.loadFile(path.join(__dirname, 'src/index.html'));
 
   // custom events
-  ipcMain.on('open-directory', async (event, arg) => {
+  ipcMain.on('openDirectory', async (event, arg) => {
     const result = await dialog.showOpenDialog(mainWindow, {
       properties: ['openDirectory'],
     });
     event.returnValue = result;
   });
 
-  ipcMain.on('open-file', async (event, arg) => {
+  ipcMain.on('openFile', async (event, arg) => {
     const result = await dialog.showOpenDialog(mainWindow, {
       properties: ['openFile'],
     });
     event.returnValue = result;
   });
 
-  ipcMain.on('build-report', async (event, arg) => {
-    let result;
-    try {
-      result = await lighthouse(arg.url, arg.options);
-    } catch (e) {
-      alert(e);
-    }
-    event.returnValue = result;
+  ipcMain.handle('buildReport', async (event, arg) => {
+    const result = await lighthouse(arg.url, arg.options);
+    return result;
   })
 };
 
-app.on('ready', createWindow);
+app.whenReady().then(() => {
+  createWindow()
+
+  app.on('activate', () => {
+    if (BrowserWindow.getAllWindows().length === 0) {
+      createWindow()
+    }
+  })
+})
+
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
-    app.quit();
+    app.quit()
   }
-});
-app.on('activate', () => {
-  if (BrowserWindow.getAllWindows().length === 0) {
-    createWindow();
-  }
-});
+})
