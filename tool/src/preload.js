@@ -43,6 +43,10 @@ contextBridge.exposeInMainWorld('api', {
     store.set('tool.summaryReport', option.summaryReport);
     store.set('tool.auditReport', option.auditReport);
     store.set('tool.warningSummaryReport', option.warningSummaryReport);
+    store.set('tool.showPerfScore', option.showPerfScore);
+    store.set('tool.showAccessScore', option.showAccessScore);
+    store.set('tool.showBestScore', option.showBestScore);
+    store.set('tool.showSeoScore', option.showSeoScore);
 
     let report = { desktopSetting: {}, mobileSetting: {}, desktopResults: [], mobileResults: [] };
     const output = option.out;
@@ -242,12 +246,20 @@ const generateReportSummary = (dest, option) => {
   }
 
   if (content.desktopResults.length > 0) {
-    body += `<div class="my-3">${borderTableHead}<tr><td>Url</td><td>Filename</td><td>Performance</td><td>Accessibility</td><td>Best-Pratices</td><td>SEO</td>${option.warningSummaryReport ? '<td>Warning</td>' : ''
-      }</tr>`;
+    body += `<div class="my-3">${borderTableHead}<tr><td>Url</td><td>Filename</td>` +
+      `${option.showPerfScore ? '<td>Performance</td>' : ''}` +
+      `${option.showAccessScore ? '<td>Accessibility</td>' : ''}` +
+      `${option.showBestScore ? '<td>Best-Pratices</td>' : ''}` +
+      `${option.showSeoScore ? '<td>SEO</td>' : ''}` +
+      `${option.warningSummaryReport ? '<td>Warning</td>' : ''}</tr>`;
     content.desktopResults.forEach((row) => {
       body += '<tr>';
-      body += `<td><a href='${row.url}' target='_blank'>${row.url}</a></td><td><a href='${path.join(desktopOut, row.file)}' target='_blank'>${row.file
-        }</a></td><td>${row.detail.score}</td><td>${row.detail.access}</td><td>${row.detail.best}</td><td>${row.detail.seo}</td>`;
+      body += `<td><a href='${row.url}' target='_blank'>${row.url}</a></td>` +
+        `<td><a href='${path.join(desktopOut, row.file)}' target='_blank'>${row.file}</a></td>` +
+        `${option.showPerfScore ? `<td>${row.detail.score}</td>` : ''}` +
+        `${option.showAccessScore ? `<td>${row.detail.access}</td>` : ''}` +
+        `${option.showBestScore ? `<td>${row.detail.best}</td>` : ''}` +
+        `${option.showSeoScore ? `<td>${row.detail.seo}</td>` : ''}`;
       if (option.warningSummaryReport && row.warning.length > 0) {
         body += `<td>${row.warning.join().replace(',', '<br/>')}</td>`;
       }
@@ -284,12 +296,20 @@ const generateReportSummary = (dest, option) => {
   }
 
   if (content.mobileResults.length > 0) {
-    body += `<div class="my-3">${borderTableHead}<tr><td>Url</td><td>Filename</td><td>Performance</td><td>Accessibility</td><td>Best-Pratices</td><td>SEO</td>${option.warningSummaryReport ? '<td>Warning</td>' : ''
-      }</tr>`;
+    body += `<div class="my-3">${borderTableHead}<tr><td>Url</td><td>Filename</td>` +
+      `${option.showPerfScore ? '<td>Performance</td>' : ''}` +
+      `${option.showAccessScore ? '<td>Accessibility</td>' : ''}` +
+      `${option.showBestScore ? '<td>Best-Pratices</td>' : ''}` +
+      `${option.showSeoScore ? '<td>SEO</td>' : ''}` +
+      `${option.warningSummaryReport ? '<td>Warning</td>' : ''}</tr>`;
     content.mobileResults.forEach((row) => {
       body += '<tr>';
-      body += `<td><a href='${row.url}' target='_blank'>${row.url}</a></td><td><a href='${path.join(mobileOut, row.file)}' target='_blank'>${row.file
-        }</a></td><td>${row.detail.score}</td><td>${row.detail.access}</td><td>${row.detail.best}</td><td>${row.detail.seo}</td>`;
+      body += `<td><a href='${row.url}' target='_blank'>${row.url}</a></td>` +
+        `<td><a href='${path.join(mobileOut, row.file)}' target='_blank'>${row.file}</a></td>` +
+        `${option.showPerfScore ? `<td>${row.detail.score}</td>` : ''}` +
+        `${option.showAccessScore ? `<td>${row.detail.access}</td>` : ''}` +
+        `${option.showBestScore ? `<td>${row.detail.best}</td>` : ''}` +
+        `${option.showSeoScore ? `<td>${row.detail.seo}</td>` : ''}`;
       if (option.warningSummaryReport && row.warning.length > 0) {
         body += `<td>${row.warning.join().replace(',', '<br/>')}</td>`;
       }
@@ -313,7 +333,7 @@ const groupBy = function (xs, key) {
   }, {});
 };
 
-const generateReportAudit = (dest) => {
+const generateReportAudit = (dest, option) => {
   const summaryFile = path.join(dest, 'summary.json');
   let content = '';
 
@@ -338,13 +358,32 @@ const generateReportAudit = (dest) => {
 
   if (combined.length > 0) {
     var groupedCombined = groupBy(combined, 'url');
-    body += `<div class="my-3">${borderTableHead}<tr><td>Website Url</td><td>Mobile Performance</td><td>Mobile Accessibility</td><td>Mobile Best-Pratices</td><td>Mobile SEO</td><td>Performance</td><td>Accessibility</td><td>Best-Pratices</td><td>SEO</td><td>PWA</td><td>Date Run</td></tr>`;
+
+    body += `<div class="my-3">${borderTableHead}<tr><td>Website Url</td>` +
+      `${option.showPerfScore ? '<td>Mobile Performance</td>' : ''}` +
+      `${option.showAccessScore ? '<td>Mobile Accessibility</td>' : ''}` +
+      `${option.showBestScore ? '<td>Mobile Best-Pratices</td>' : ''}` +
+      `${option.showSeoScore ? '<td>Mobile SEO</td>' : ''}` +
+      `${option.showPerfScore ? '<td>Performance</td>' : ''}` +
+      `${option.showAccessScore ? '<td>Accessibility</td>' : ''}` +
+      `${option.showBestScore ? '<td>Best-Pratices</td>' : ''}` +
+      `${option.showSeoScore ? '<td>SEO</td>' : ''}` +
+      `<td>PWA</td><td>Date Run</td></tr>`;
     for (var gCombined in groupedCombined) {
       var url = gCombined;
       var desktop = groupedCombined[gCombined].filter(x => x.type === 'desktop')[0];
       var mobile = groupedCombined[gCombined].filter(x => x.type === 'mobile')[0];
       body += '<tr>';
-      body += `<td><a href='${url}' target='_blank'>${url}</a></td><td>${mobile.detail.score}</td><td>${mobile.detail.access}</td><td>${mobile.detail.best}</td><td>${mobile.detail.seo}</td><td>${desktop.detail.score}</td><td>${desktop.detail.access}</td><td>${desktop.detail.best}</td><td>${desktop.detail.seo}</td><td>N/A</td><td></td>`;
+      body += `<td><a href='${url}' target='_blank'>${url}</a></td>` +
+        `${option.showPerfScore ? `<td>${mobile.detail.score}</td>` : ''}` +
+        `${option.showAccessScore ? `<td>${mobile.detail.access}</td>` : ''}` +
+        `${option.showBestScore ? `<td>${mobile.detail.best}</td>` : ''}` +
+        `${option.showSeoScore ? `<td>${mobile.detail.seo}</td>` : ''}` +
+        `${option.showPerfScore ? `<td>${desktop.detail.score}</td>` : ''}` +
+        `${option.showAccessScore ? `<td>${desktop.detail.access}</td>` : ''}` +
+        `${option.showBestScore ? `<td>${desktop.detail.best}</td>` : ''}` +
+        `${option.showSeoScore ? `<td>${desktop.detail.seo}</td>` : ''}` +
+        `<td>N/A</td><td></td>`;
       body += '</tr>';
     }
     body += `${borderTableTail}</div>`;
@@ -373,14 +412,14 @@ const siteName = (site) => {
 
 const cyrb53 = (str, seed = 0) => {
   let h1 = 0xdeadbeef ^ seed, h2 = 0x41c6ce57 ^ seed;
-  for(let i = 0, ch; i < str.length; i++) {
-      ch = str.charCodeAt(i);
-      h1 = Math.imul(h1 ^ ch, 2654435761);
-      h2 = Math.imul(h2 ^ ch, 1597334677);
+  for (let i = 0, ch; i < str.length; i++) {
+    ch = str.charCodeAt(i);
+    h1 = Math.imul(h1 ^ ch, 2654435761);
+    h2 = Math.imul(h2 ^ ch, 1597334677);
   }
-  h1  = Math.imul(h1 ^ (h1 >>> 16), 2246822507);
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507);
   h1 ^= Math.imul(h2 ^ (h2 >>> 13), 3266489909);
-  h2  = Math.imul(h2 ^ (h2 >>> 16), 2246822507);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507);
   h2 ^= Math.imul(h1 ^ (h1 >>> 13), 3266489909);
 
   return 4294967296 * (2097151 & h2) + (h1 >>> 0);

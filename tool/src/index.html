@@ -61,29 +61,51 @@
 
     <h3>Lighthouse Setting:</h3>
 
-    <div class="form-check mb-3">
-      <input type="checkbox" class="form-check-input" id="desktopReport" checked />
-      <label class="form-check-label" for="desktopReport">Generate Desktop Report</label>
-    </div>
+    <div class="row">
+      <div class="col-6">
+        <div class="form-check mb-3">
+          <input type="checkbox" class="form-check-input" id="desktopReport" checked />
+          <label class="form-check-label" for="desktopReport">Generate Desktop Report</label>
+        </div>
 
-    <div class="form-check mb-3">
-      <input type="checkbox" class="form-check-input" id="mobileReport" checked />
-      <label class="form-check-label" for="mobileReport">Generate Mobile Report</label>
-    </div>
+        <div class="form-check mb-3">
+          <input type="checkbox" class="form-check-input" id="mobileReport" checked />
+          <label class="form-check-label" for="mobileReport">Generate Mobile Report</label>
+        </div>
 
-    <div class="form-check mb-3">
-      <input type="checkbox" class="form-check-input" id="summaryReport" checked />
-      <label class="form-check-label" for="summaryReport">Generate Summary Report</label>
-    </div>
+        <div class="form-check mb-3">
+          <input type="checkbox" class="form-check-input" id="summaryReport" checked />
+          <label class="form-check-label" for="summaryReport">Generate Summary Report</label>
+        </div>
 
-    <div class="form-check mb-3">
-      <input type="checkbox" class="form-check-input" id="auditReport" checked />
-      <label class="form-check-label" for="auditReport">Generate Audit Report</label>
-    </div>
+        <div class="form-check mb-3">
+          <input type="checkbox" class="form-check-input" id="auditReport" checked />
+          <label class="form-check-label" for="auditReport">Generate Audit Report</label>
+        </div>
 
-    <div class="form-check mb-3">
-      <input type="checkbox" class="form-check-input" id="warningSummaryReport" checked />
-      <label class="form-check-label" for="warningSummaryReport">Show Warning in Summary Report</label>
+        <div class="form-check mb-3">
+          <input type="checkbox" class="form-check-input" id="warningSummaryReport" checked />
+          <label class="form-check-label" for="warningSummaryReport">Show Warning in Summary Report</label>
+        </div>
+      </div>
+      <div class="col-6">
+        <div class="form-check mb-3">
+          <input type="checkbox" class="form-check-input" id="showPerfScore" checked />
+          <label class="form-check-label" for="showPerfScore">Show Performance Score</label>
+        </div>
+        <div class="form-check mb-3">
+          <input type="checkbox" class="form-check-input" id="showAccessScore" checked />
+          <label class="form-check-label" for="showAccessScore">Show Accessibility Score</label>
+        </div>
+        <div class="form-check mb-3">
+          <input type="checkbox" class="form-check-input" id="showBestScore" checked />
+          <label class="form-check-label" for="showBestScore">Show Best Score</label>
+        </div>
+        <div class="form-check mb-3">
+          <input type="checkbox" class="form-check-input" id="showSeoScore" checked />
+          <label class="form-check-label" for="showSeoScore">Show SEO Score</label>
+        </div>
+      </div>
     </div>
 
     <div class="mt-3 mb-3">
@@ -145,6 +167,10 @@
         summaryReport: $('#summaryReport').prop('checked'),
         auditReport: $('#auditReport').prop('checked'),
         warningSummaryReport: $('#warningSummaryReport').prop('checked'),
+        showPerfScore: $('#showPerfScore').prop('checked'),
+        showAccessScore: $('#showAccessScore').prop('checked'),
+        showBestScore: $('#showBestScore').prop('checked'),
+        showSeoScore: $('#showSeoScore').prop('checked'),
         score: $('#perfScore').val() ?? 90,
         access: $('#accessScore').val() ?? 90,
         best: $('#bestScore').val() ?? 90,
@@ -219,6 +245,26 @@
         $('#warningSummaryReport').prop('checked', true);
       } else {
         $('#warningSummaryReport').prop('checked', false);
+      }
+      if (settings.showPerfScore) {
+        $('#showPerfScore').prop('checked', true);
+      } else {
+        $('#showPerfScore').prop('checked', false);
+      }
+      if (settings.showAccessScore) {
+        $('#showAccessScore').prop('checked', true);
+      } else {
+        $('#showAccessScore').prop('checked', false);
+      }
+      if (settings.showBestScore) {
+        $('#showBestScore').prop('checked', true);
+      } else {
+        $('#showBestScore').prop('checked', false);
+      }
+      if (settings.showSeoScore) {
+        $('#showSeoScore').prop('checked', true);
+      } else {
+        $('#showSeoScore').prop('checked', false);
       }
       if (settings.score) {
         $('#perfScore').val(settings.score);
