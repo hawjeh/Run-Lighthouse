@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:" />
+  <meta http-equiv="X-Content-Security-Policy"
+    content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:" />
+  <link href="./assets/bootstrap.min.css" rel="stylesheet" />
+  <title>WS Lighthouse Reporting Tool v2</title>
+  <style>
+    section {
+      margin-top: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    label.input-group-text {
+      min-width: 180px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container m-3">
+    <h3 class="mb-3">WS Lighthouse Reporting Tool v2</h3>
+
+    <section>
+      <h5>Setup</h5>
+      <div class="input-group my-3">
+        <label class="input-group-text">Sites TXT File:</label>
+        <input type="file" class="form-control" id="siteFile" />
+        <input type="text" class="form-control" id="siteFileSelected" disabled />
+      </div>
+
+      <div class="input-group my-3">
+        <label class="input-group-text">Destination Folder:</label>
+        <input type="file" class="form-control" id="destFolder" />
+        <input type="text" class="form-control" id="destFolderSelected" disabled />
+      </div>
+    </section>
+
+    <section>
+      <h5>Threshold Reporting</h5>
+      <div class="input-group my-3">
+        <label class="input-group-text">Performance Score:</label>
+        <input type="number" class="form-control" id="perfScore" min="1" max="100" value="90" />
+      </div>
+
+      <div class="input-group my-3">
+        <label class="input-group-text">Accessibility Score:</label>
+        <input type="number" class="form-control" id="accessScore" min="1" max="100" value="90" />
+      </div>
+
+      <div class="input-group my-3">
+        <label class="input-group-text">Best Practices Score:</label>
+        <input type="number" class="form-control" id="bestScore" min="1" max="100" value="90" />
+      </div>
+
+      <div class="input-group my-3">
+        <label class="input-group-text">SEO Score:</label>
+        <input type="number" class="form-control" id="seoScore" min="1" max="100" value="90" />
+      </div>
+    </section>
+
+    <section>
+      <h5>Lighthouse Setting</h5>
+      <div class="row my-3 px-1">
+        <div class="col-6">
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" checked id="genDesktopReport">
+            <label class="form-check-label" for="genDesktopReport">
+              Generate Desktop Report
+            </label>
+          </div>
+
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" checked id="genMobileReport">
+            <label class="form-check-label" for="genMobileReport">
+              Generate Mobile Report
+            </label>
+          </div>
+
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" checked id="genSummaryReport">
+            <label class="form-check-label" for="genSummaryReport">
+              Generate Summary Report
+            </label>
+          </div>
+
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" checked id="genAuditReport">
+            <label class="form-check-label" for="genAuditReport">
+              Generate Audit Report
+            </label>
+          </div>
+
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" checked id="showWarningInSummaryReport">
+            <label class="form-check-label" for="showWarningInSummaryReport">
+              Show Warning in Summary Report
+            </label>
+          </div>
+        </div>
+
+        <div class="col-6">
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" checked id="showPerfScore">
+            <label class="form-check-label" for="showPerfScore">
+              Show Performance Score
+            </label>
+          </div>
+
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" checked id="showAccessScore">
+            <label class="form-check-label" for="showAccessScore">
+              Show Accessibility Score
+            </label>
+          </div>
+
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" checked id="showBestScore">
+            <label class="form-check-label" for="showBestScore">
+              Show Best Practices Score
+            </label>
+          </div>
+
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" checked id="showSeoScore">
+            <label class="form-check-label" for="showSeoScore">
+              Show SEO Score
+            </label>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <button class="btn btn-outline-secondary" type="button" id="download">Download Sample Site</button>
+      <button class="btn btn-outline-secondary" type="button" id="generate">Generate Report</button>
+      <button class="btn btn-outline-secondary" type="button" id="generateSummary">Generate Summary Report</button>
+      <button class="btn btn-outline-secondary" type="button" id="generateAudit">Generate Audit Report</button>
+      <button class="btn btn-outline-secondary" type="button" id="openFolder">Open Report Folder</button>
+    </section>
+
+    <sction class="d-none" id="report">
+      <div class="mb-3">
+        <div class="spinner-border text-primary" role="status">
+          <span class="visually-hidden">Loading...</span>
+        </div>
+        Generating Report
+      </div>
+    </sction>
+  </div>
+
+  <script src="./assets/bootstrap.min.js"></script>
+  <script src="./renderer.js"></script>
+</body>
+
+</html>

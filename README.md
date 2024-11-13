@@ -8,6 +8,16 @@ Lighthouse version v10.1.1
 Specially thanks to To Minh Son Sean contribution :)
 ```
 
+# Run Lighthouse New-Tool
+
+Electron builder - [Electron](https://github.com/hieund140386/electron-get-started/tree/master)
+
+Using electronforge to build exe
+
+Lighthouse version v12.2.1
+
+Upgrade to use ESM
+
 ## Desktop Reporting Tool
 
 Run debugging mode
