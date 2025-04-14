@@ -1,7 +1,7 @@
 {
   "name": "run-lighthouse-tool-v2",
   "description": "Lighthouse Reporting Desktop App v2",
-  "version": "12.2.1",
+  "version": "12.5.1",
   "main": "src/main.js",
   "type": "module",
   "scripts": {
@@ -24,7 +24,7 @@
     "dotenv": "^16.4.5",
     "electron-squirrel-startup": "^1.0.1",
     "electron-store": "^10.0.0",
-    "lighthouse": "^12.2.1"
+    "lighthouse": "^12.5.1"
   },
   "devDependencies": {
     "@electron-forge/cli": "^7.5.0",
