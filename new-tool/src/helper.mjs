@@ -4,20 +4,26 @@ import path from 'path';
 import { launch } from 'chrome-launcher';
 
 const getFolder = (option) => {
-  // remove and create new folder
   const out = path.join(option.out, option.isMobile ? 'mobile' : 'desktop');
+
   try {
-    const outfiles = fs.readdirSync(out);
-    outfiles.forEach((f) => {
-      const oldFile = path.join(out, f);
-      rm('-f', oldFile);
-    });
-    const files = fs.readdirSync(out);
-    files.forEach((f) => {
-      const oldFile = path.join(out, f);
-      rm('-f', oldFile);
-    });
-  } catch (e) { }
+    if (fs.existsSync(out)) {
+      const files = fs.readdirSync(out);
+      files.forEach((f) => {
+        const oldFile = path.join(out, f);
+        try {
+          if (fs.existsSync(oldFile)) {
+            fs.unlinkSync(oldFile);
+          }
+        } catch (err) {
+          console.warn('Delete failed:', oldFile, err.message);
+        }
+      });
+    }
+  } catch (e) {
+    console.warn('Folder cleanup error:', e.message);
+  }
+
   mkdirp(out);
   return out;
 };
@@ -94,11 +100,12 @@ const cyrb53 = (str, seed = 0) => {
 };
 
 const mkdirp = (dir) => {
-  if (fs.existsSync(dir)) { return true }
-  const dirname = path.dirname(dir)
-  mkdirp(dirname);
-  fs.mkdirSync(dir);
-}
+  try {
+    fs.mkdirSync(dir, { recursive: true });
+  } catch (err) {
+    console.warn('mkdir failed:', dir, err.message);
+  }
+};
 
 const groupBy = function (xs, key) {
   return xs.reduce(function (rv, x) {
@@ -107,105 +114,131 @@ const groupBy = function (xs, key) {
   }, {});
 };
 
+// lighthouse/core/config/constants.js
+// check from lighthouse chrome
 const buildReport = async (option, report) => {
-  const chrome = await launch({ chromeFlags: ['--no-sandbox', '--headless', '--disable-gpu'] });
-  let options = {
-    logLevel: 'info',
-    output: 'html',
-    onlyCategories: option.categories,
-    port: chrome.port,
-    formFactor: option.isMobile ? 'mobile' : 'desktop',
-    throttling: option.isMobile ?
-      {
-        "rttMs": 150,
-        "throughputKbps": 1638.4,
-        "requestLatencyMs": 562.5,
-        "downloadThroughputKbps": 1474.5600000000002,
-        "uploadThroughputKbps": 675,
-        "cpuSlowdownMultiplier": 4
-      } : {
-        "rttMs": 40,
-        "throughputKbps": 10240,
-        "requestLatencyMs": 0,
-        "downloadThroughputKbps": 0,
-        "uploadThroughputKbps": 0,
-        "cpuSlowdownMultiplier": 1
-      },
-    screenEmulation: option.isMobile ?
-      {
-        "mobile": true,
-        "width": 412,
-        "height": 823,
-        "deviceScaleFactor": 1.75,
-        "disabled": false
-      } : {
-        "mobile": false,
-        "width": 1920,
-        "height": 1080,
-        "deviceScaleFactor": 1,
-        "disabled": false
-      },
-    emulatedUserAgent: option.isMobile ?
-      "Mozilla/5.0 (Linux; Android 11; moto g power (2022)) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Mobile Safari/537.36" :
-      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36"
-  };
+  let chrome;
 
-  const runnerResult = await ipcRenderer.invoke('buildReport', { url: option.site.url, options: options });
+  try {
+    chrome = await launch({
+      chromeFlags: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--headless=new',
+        '--disable-gpu',
+        '--disable-dev-shm-usage'
+      ]
+    });
 
-  if (option.isMobile) {
-    if (report.mobileSetting && Object.keys(report.mobileSetting).length === 0) {
-      report.mobileSetting = {
-        environment: runnerResult.lhr.environment,
-        enumaltedUserAgent: runnerResult.lhr.configSettings.emulatedUserAgent,
-        throttling: runnerResult.lhr.configSettings.throttling,
-        screenEmulation: runnerResult.lhr.configSettings.screenEmulation,
-        version: runnerResult.lhr.lighthouseVersion,
-      };
+    let options = {
+      logLevel: 'info',
+      output: 'html',
+      preset: option.isMobile ? 'mobile' : 'desktop',
+      throttlingMethod: 'simulate',
+      onlyCategories: option.categories,
+      port: chrome.port,
+      formFactor: option.isMobile ? 'mobile' : 'desktop',
+      throttling: option.isMobile
+        ? {
+          rttMs: 150,
+          throughputKbps: 1638,
+          cpuSlowdownMultiplier: 4
+        }
+        : {
+          rttMs: 40,
+          throughputKbps: 10240,
+          cpuSlowdownMultiplier: 1
+        },
+      screenEmulation: option.isMobile
+        ? {
+          mobile: true,
+          width: 360,
+          height: 640,
+          deviceScaleFactor: 2.625,
+          disabled: false,
+        }
+        : {
+          mobile: false,
+          width: 1350,
+          height: 940,
+          deviceScaleFactor: 1,
+          disabled: false
+        },
+      emulatedUserAgent: option.isMobile
+        ? "Mozilla/5.0 (Linux; Android 11; moto g power (2022)) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Mobile Safari/537.36"
+        : "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
+    };
+
+    const runnerResult = await ipcRenderer.invoke('buildReport', {
+      url: option.site.url,
+      options: options
+    });
+
+    const filePath = path.join(option.outFolder, option.site.file);
+    fs.mkdirSync(path.dirname(filePath), { recursive: true });
+    fs.writeFileSync(filePath, runnerResult.report);
+
+    if (option.isMobile) {
+      if (report.mobileSetting && Object.keys(report.mobileSetting).length === 0) {
+        report.mobileSetting = {
+          environment: runnerResult.lhr.environment,
+          enumaltedUserAgent: runnerResult.lhr.configSettings.emulatedUserAgent,
+          throttling: runnerResult.lhr.configSettings.throttling,
+          screenEmulation: runnerResult.lhr.configSettings.screenEmulation,
+          version: runnerResult.lhr.lighthouseVersion,
+        };
+      }
+
+      report.mobileResults.push({
+        url: runnerResult.lhr.requestedUrl,
+        name: option.site.name,
+        type: 'mobile',
+        file: option.site.file,
+        detail: {
+          score: runnerResult.lhr.categories['performance'].score * 100,
+          access: runnerResult.lhr.categories['accessibility'].score * 100,
+          best: runnerResult.lhr.categories['best-practices'].score * 100,
+          seo: runnerResult.lhr.categories['seo'].score * 100,
+        },
+        warning: [],
+      });
+    } else {
+      if (report.desktopSetting && Object.keys(report.desktopSetting).length === 0) {
+        report.desktopSetting = {
+          environment: runnerResult.lhr.environment,
+          enumaltedUserAgent: runnerResult.lhr.configSettings.emulatedUserAgent,
+          throttling: runnerResult.lhr.configSettings.throttling,
+          screenEmulation: runnerResult.lhr.configSettings.screenEmulation,
+          version: runnerResult.lhr.lighthouseVersion,
+        };
+      }
+
+      report.desktopResults.push({
+        url: runnerResult.lhr.requestedUrl,
+        name: option.site.name,
+        type: 'desktop',
+        file: option.site.file,
+        detail: {
+          score: runnerResult.lhr.categories['performance'].score * 100,
+          access: runnerResult.lhr.categories['accessibility'].score * 100,
+          best: runnerResult.lhr.categories['best-practices'].score * 100,
+          seo: runnerResult.lhr.categories['seo'].score * 100,
+        },
+        warning: [],
+      });
     }
 
-    report.mobileResults.push({
-      url: runnerResult.lhr.requestedUrl,
-      name: option.site.name,
-      type: 'mobile',
-      file: option.site.file,
-      detail: {
-        score: runnerResult.lhr.categories['performance'].score * 100,
-        access: runnerResult.lhr.categories['accessibility'].score * 100,
-        best: runnerResult.lhr.categories['best-practices'].score * 100,
-        seo: runnerResult.lhr.categories['seo'].score * 100,
-      },
-      warning: [],
-    });
-  } else {
-    if (report.desktopSetting && Object.keys(report.desktopSetting).length === 0) {
-      report.desktopSetting = {
-        environment: runnerResult.lhr.environment,
-        enumaltedUserAgent: runnerResult.lhr.configSettings.emulatedUserAgent,
-        throttling: runnerResult.lhr.configSettings.throttling,
-        screenEmulation: runnerResult.lhr.configSettings.screenEmulation,
-        version: runnerResult.lhr.lighthouseVersion,
-      };
+  } catch (err) {
+    console.error('Lighthouse error:', err);
+  } finally {
+    if (chrome) {
+      try {
+        await chrome.kill();
+      } catch (e) {
+        console.warn('Chrome kill failed:', e.message);
+      }
     }
-
-    report.desktopResults.push({
-      url: runnerResult.lhr.requestedUrl,
-      name: option.site.name,
-      type: 'desktop',
-      file: option.site.file,
-      detail: {
-        score: runnerResult.lhr.categories['performance'].score * 100,
-        access: runnerResult.lhr.categories['accessibility'].score * 100,
-        best: runnerResult.lhr.categories['best-practices'].score * 100,
-        seo: runnerResult.lhr.categories['seo'].score * 100,
-      },
-      warning: [],
-    });
   }
-
-  const reportHtml = runnerResult.report;
-  fs.writeFileSync(`${path.join(option.outFolder, option.site.file)}`, reportHtml);
-
-  await chrome.kill();
 };
 
 const buildReportSummary = (dest, option) => {
@@ -378,18 +411,18 @@ const buildReportAudit = (dest, option) => {
       `<td>PWA</td><td>Date Run</td></tr>`;
     for (var gCombined in groupedCombined) {
       var url = gCombined;
-      var desktop = groupedCombined[gCombined].filter(x => x.type === 'desktop')[0];
-      var mobile = groupedCombined[gCombined].filter(x => x.type === 'mobile')[0];
+      var desktop = groupedCombined[gCombined].filter(x => x.type === 'desktop')[0] || null;
+      var mobile = groupedCombined[gCombined].filter(x => x.type === 'mobile')[0] || null;
       body += '<tr>';
       body += `<td><a href='${url}' target='_blank'>${url}</a></td>` +
-        `${option.showPerfScore ? `<td>${mobile.detail.score}</td>` : ''}` +
-        `${option.showAccessScore ? `<td>${mobile.detail.access}</td>` : ''}` +
-        `${option.showBestScore ? `<td>${mobile.detail.best}</td>` : ''}` +
-        `${option.showSeoScore ? `<td>${mobile.detail.seo}</td>` : ''}` +
-        `${option.showPerfScore ? `<td>${desktop.detail.score}</td>` : ''}` +
-        `${option.showAccessScore ? `<td>${desktop.detail.access}</td>` : ''}` +
-        `${option.showBestScore ? `<td>${desktop.detail.best}</td>` : ''}` +
-        `${option.showSeoScore ? `<td>${desktop.detail.seo}</td>` : ''}` +
+        `${option.showPerfScore ? `<td>${mobile?.detail?.score ?? '-'}</td>` : ''}` +
+        `${option.showAccessScore ? `<td>${mobile?.detail?.access ?? '-'}</td>` : ''}` +
+        `${option.showBestScore ? `<td>${mobile?.detail?.best ?? '-'}</td>` : ''}` +
+        `${option.showSeoScore ? `<td>${mobile?.detail?.seo ?? '-'}</td>` : ''}` +
+        `${option.showPerfScore ? `<td>${desktop?.detail?.score ?? '-'}</td>` : ''}` +
+        `${option.showAccessScore ? `<td>${desktop?.detail?.access ?? '-'}</td>` : ''}` +
+        `${option.showBestScore ? `<td>${desktop?.detail?.best ?? '-'}</td>` : ''}` +
+        `${option.showSeoScore ? `<td>${desktop?.detail?.seo ?? '-'}</td>` : ''}` +
         `<td>N/A</td><td></td>`;
       body += '</tr>';
     }
